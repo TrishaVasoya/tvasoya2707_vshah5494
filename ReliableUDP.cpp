@@ -269,120 +269,121 @@ int main(int argc, char* argv[])
 			fileSizePacket[0] = 0x02; // Packet type for file size
 			memcpy(fileSizePacket + 1, &size, sizeof(size));
 			connection.SendPacket(fileSizePacket, sizeof(fileSizePacket));
-		}
-		unsigned char contentPacket[PacketSize];
-		contentPacket[0] = 0x03; // Packet type for file content
 
-		for (std::streamsize bytesRead = 0; bytesRead < size; ) {
-			memset(contentPacket + 1, 0, PacketSize - 1);
-			std::streamsize readSize = (std::min)(size - bytesRead, static_cast<std::streamsize>(PacketSize - 1));
-			if (!file.read(reinterpret_cast<char*>(contentPacket + 1), readSize)) {
-				std::cerr << "Failed to read from file.\n";
-				break;
+			unsigned char contentPacket[PacketSize];
+			contentPacket[0] = 0x03; // Packet type for file content
+
+			for (std::streamsize bytesRead = 0; bytesRead < size; ) {
+				memset(contentPacket + 1, 0, PacketSize - 1);
+				std::streamsize readSize = (std::min)(size - bytesRead, static_cast<std::streamsize>(PacketSize - 1));
+				if (!file.read(reinterpret_cast<char*>(contentPacket + 1), readSize)) {
+					std::cerr << "Failed to read from file.\n";
+					break;
+				}
+				bytesRead += readSize;
+				connection.SendPacket(contentPacket, readSize + 1);
 			}
-			bytesRead += readSize;
-			connection.SendPacket(contentPacket, readSize + 1);
-		}
-
-		// Send End of File packet (Type 0x04)
-		unsigned char eofPacket[PacketSize];
-		memset(eofPacket, 0, sizeof(eofPacket));
-		eofPacket[0] = 0x04; // Packet type for end of file
-		connection.SendPacket(eofPacket, sizeof(eofPacket));
-
-		file.close(); std::cout << "File transmission completed.\n";
-		double fileSizeInBytes = static_cast<double>(size); // Assuming 'size' is already defined as the file size in bytes
-		double fileSizeInBits = fileSizeInBytes * 8.0; // Convert bytes to bits
-
-		auto end = high_resolution_clock::now();
-		auto duration = duration_cast<milliseconds>(end - start); // Duration in milliseconds// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
-
-		// Convert duration from milliseconds to seconds for speed calculation
-		double durationInSeconds = duration.count() / 1000.0; // Correcting the missing calculation here
-
-		// Calculate the speed in Megabits per second (Mbps)
-		double speedMbps = (fileSizeInBits / (1024 * 1024)) / durationInSeconds; // Note: 1024*1024 bits in a Megabit
-
-		std::cout << "File transmission completed in " << duration.count() << " milliseconds.\n";
-		std::cout << "Transmission speed: " << speedMbps << " Mbps\n";
-	}
 
 
-	sendAccumulator += DeltaTime;
-	for (; sendAccumulator > 1.0f / sendRate; sendAccumulator -= 1.0f / sendRate)
-	{
-		unsigned char packet[PacketSize];
-		unsigned char filepacket[PacketSize];
-		memset(packet, 0, sizeof(packet));
-		sprintf((char*)packet, "Hello World <<%d>>", packetCounter++);
-		connection.SendPacket(packet, sizeof(packet));
-	}
+			// Send End of File packet (Type 0x04)
+			unsigned char eofPacket[PacketSize];
+			memset(eofPacket, 0, sizeof(eofPacket));
+			eofPacket[0] = 0x04; // Packet type for end of file
+			connection.SendPacket(eofPacket, sizeof(eofPacket));
 
+			file.close();
+			std::cout << "File transmission completed.\n";
+			double fileSizeInBytes = static_cast<double>(size); // Assuming 'size' is already defined as the file size in bytes
+			double fileSizeInBits = fileSizeInBytes * 8.0; // Convert bytes to bits
 
-	std::ofstream outFile;
-	std::string outFilename;
-	size_t outFilesize = 0;
-	size_t receivedFileSize = 0; // To track the amount of data received
-	bool timingStarted = false; // Flag to mark the start of timing
-	auto start = high_resolution_clock::now(); // Initialize start time
-
-	for (;;) {
-		unsigned char packet[PacketSize];
-		int bytes_read = connection.ReceivePacket(packet, sizeof(packet));
-
-		if (bytes_read == 0)
-			continue; // Skip processing if no packet was received
-
-		if (!timingStarted) {
-			start = high_resolution_clock::now(); // Properly set start time at the first packet
-			timingStarted = true;
-		}
-
-		if (packet[0] == 0x01) { // Filename
-			outFilename.assign(reinterpret_cast<char*>(packet + 1), bytes_read - 1);
-			outFile.open(outFilename, std::ios::binary);
-			if (!outFile.is_open()) {
-				std::cerr << "Failed to create file: " << outFilename << std::endl;
-				return 1;
-			}
-		}
-		else if (packet[0] == 0x02) { // File size
-			memcpy(&outFilesize, packet + 1, sizeof(outFilesize));
-		}
-		else if (packet[0] == 0x03) { // File content packet
-			receivedFileSize += (bytes_read - 1); // Accumulate received size
-			if (outFile.is_open()) {
-				outFile.write(reinterpret_cast<char*>(packet + 1), bytes_read - 1);
-			}
-		}
-		else if (packet[0] == 0x04) { // End of file
-			if (outFile.is_open()) {
-				outFile.close();
-				std::cout << "File " << outFilename << " received and saved. Size: " << receivedFileSize << " bytes.\n";
-			}
 			auto end = high_resolution_clock::now();
-			auto duration = duration_cast<chrono::duration<double>>(end - start); // This is the correct usage
-			double durationInSeconds = duration.count();
-			double receivedFileSizeInBits = receivedFileSize * 8.0; // Convert bytes to bits
-			double speedMbps = (receivedFileSizeInBits / (1024.0 * 1024.0)) / durationInSeconds; // Mbps calculation
+			auto duration = duration_cast<milliseconds>(end - start); // Duration in milliseconds
 
-			cout << "File transmission completed in " << durationInSeconds << " seconds.\n";
-			cout << "Reception speed: " << speedMbps << " Mbps\n";
+			// Convert duration from milliseconds to seconds for speed calculation
+			double durationInSeconds = duration.count() / 1000.0; // Correcting the missing calculation here
 
-			// Reset for potentially next file
-			receivedFileSize = 0;
-			timingStarted = false;
+			// Calculate the speed in Megabits per second (Mbps)
+			double speedMbps = (fileSizeInBits / (1024 * 1024)) / durationInSeconds; // Note: 1024*1024 bits in a Megabit
+
+			std::cout << "File transmission completed in " << duration.count() << " milliseconds.\n";
+			std::cout << "Transmission speed: " << speedMbps << " Mbps\n";
 		}
-		else {
-			std::cout << "Received unknown packet type.\n";
+
+
+		sendAccumulator += DeltaTime;
+		for (; sendAccumulator > 1.0f / sendRate; sendAccumulator -= 1.0f / sendRate)
+		{
+			unsigned char packet[PacketSize];
+			unsigned char filepacket[PacketSize];
+			memset(packet, 0, sizeof(packet));
+			sprintf((char*)packet, "Hello World <<%d>>", packetCounter++);
+			connection.SendPacket(packet, sizeof(packet));
 		}
-		auto end = high_resolution_clock::now();
-		// Calculate the duration
-		auto duration = duration_cast<milliseconds>(end - start);
 
-		std::cout << "File transmission completed in " << duration.count() << " milliseconds.\n";
+		std::ofstream outFile;
+		std::string outFilename;
+		size_t outFilesize = 0;
+		size_t receivedFileSize = 0; // To track the amount of data received
+		bool timingStarted = false; // Flag to mark the start of timing
+		auto start = high_resolution_clock::now(); // Initialize start time
 
-	}
+		for (;;) {
+			unsigned char packet[PacketSize];
+			int bytes_read = connection.ReceivePacket(packet, sizeof(packet));
+
+			if (bytes_read == 0)
+				continue; // Skip processing if no packet was received
+
+			if (!timingStarted) {
+				start = high_resolution_clock::now(); // Properly set start time at the first packet
+				timingStarted = true;
+			}
+
+			if (packet[0] == 0x01) { // Filename
+				outFilename.assign(reinterpret_cast<char*>(packet + 1), bytes_read - 1);
+				outFile.open(outFilename, std::ios::binary);
+				if (!outFile.is_open()) {
+					std::cerr << "Failed to create file: " << outFilename << std::endl;
+					return 1;
+				}
+			}
+			else if (packet[0] == 0x02) { // File size
+				memcpy(&outFilesize, packet + 1, sizeof(outFilesize));
+			}
+			else if (packet[0] == 0x03) { // File content packet
+				receivedFileSize += (bytes_read - 1); // Accumulate received size
+				if (outFile.is_open()) {
+					outFile.write(reinterpret_cast<char*>(packet + 1), bytes_read - 1);
+				}
+			}
+			else if (packet[0] == 0x04) { // End of file
+				if (outFile.is_open()) {
+					outFile.close();
+					std::cout << "File " << outFilename << " received and saved. Size: " << receivedFileSize << " bytes.\n";
+				}
+				auto end = high_resolution_clock::now();
+				auto duration = duration_cast<chrono::duration<double>>(end - start); // This is the correct usage
+				double durationInSeconds = duration.count();
+				double receivedFileSizeInBits = receivedFileSize * 8.0; // Convert bytes to bits
+				double speedMbps = (receivedFileSizeInBits / (1024.0 * 1024.0)) / durationInSeconds; // Mbps calculation
+
+				cout << "File transmission completed in " << durationInSeconds << " seconds.\n";
+				cout << "Reception speed: " << speedMbps << " Mbps\n";
+
+				// Reset for potentially next file
+				receivedFileSize = 0;
+				timingStarted = false;
+			}
+			else {
+				std::cout << "Received unknown packet type.\n";
+			}
+
+			auto end = high_resolution_clock::now();
+			// Calculate the duration
+			auto duration = duration_cast<milliseconds>(end - start);
+
+			std::cout << "File transmission completed in " << duration.count() << " milliseconds.\n";
+		}
 
 
 		// show packets that were acked this frame
@@ -408,14 +409,12 @@ int main(int argc, char* argv[])
 
 		statsAccumulator += DeltaTime;
 
-		while (statsAccumulator >= 0.25f && connection.IsConnected())
+		for (; statsAccumulator >= 0.25f && connection.IsConnected(); statsAccumulator -= 0.25f)
 		{
 			float rtt = connection.GetReliabilitySystem().GetRoundTripTime();
-
 			unsigned int sent_packets = connection.GetReliabilitySystem().GetSentPackets();
 			unsigned int acked_packets = connection.GetReliabilitySystem().GetAckedPackets();
 			unsigned int lost_packets = connection.GetReliabilitySystem().GetLostPackets();
-
 			float sent_bandwidth = connection.GetReliabilitySystem().GetSentBandwidth();
 			float acked_bandwidth = connection.GetReliabilitySystem().GetAckedBandwidth();
 
@@ -423,8 +422,6 @@ int main(int argc, char* argv[])
 				rtt * 1000.0f, sent_packets, acked_packets, lost_packets,
 				sent_packets > 0.0f ? (float)lost_packets / (float)sent_packets * 100.0f : 0.0f,
 				sent_bandwidth, acked_bandwidth);
-
-			statsAccumulator -= 0.25f;
 		}
 
 		net::wait(DeltaTime);
