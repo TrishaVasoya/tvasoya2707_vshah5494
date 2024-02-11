@@ -1,6 +1,14 @@
-Reliability and Flow Control Example
-From "Networking for Game Programmers" - http://www.gaffer.org/networking-for-game-programmers
-Author: Glenn Fiedler <gaffer@gaffer.org>
+/*
+	Name        : Vrushti Shah (8825494) and Trisha Vasoya (8872707)
+	Project Name: ReliableUDP
+	Date        : 10th Febuary,2024
+	Description : This C++ program demonstrates reliable communication between a client and server, managing flow control and measuring transmission speed.
+*/
+
+/*
+	Reliability and Flow Control Example
+	From "Networking for Game Programmers" - http://www.gaffer.org/networking-for-game-programmers
+	Author: Glenn Fiedler <gaffer@gaffer.org>
 */
 
 #include <iostream>
@@ -9,6 +17,7 @@ Author: Glenn Fiedler <gaffer@gaffer.org>
 #include <vector>
 #include <cstring>
 #include <chrono>
+
 
 #include "Net.h"
 #pragma warning (disable : 4996)
@@ -19,6 +28,8 @@ Author: Glenn Fiedler <gaffer@gaffer.org>
 
 using namespace std;
 using namespace net;
+using namespace std::chrono;
+
 
 const int ServerPort = 30000;
 const int ClientPort = 30001;
@@ -28,6 +39,7 @@ const float SendRate = 1.0f / 30.0f;
 const float TimeOut = 10.0f;
 const int PacketSize = 256;
 
+// Class for managing flow control
 class FlowControl
 {
 public:
@@ -37,7 +49,7 @@ public:
 		printf("flow control initialized\n");
 		Reset();
 	}
-
+	// Reset flow control parameters
 	void Reset()
 	{
 		mode = Bad;
@@ -45,7 +57,7 @@ public:
 		good_conditions_time = 0.0f;
 		penalty_reduction_accumulator = 0.0f;
 	}
-
+	// Update flow control based on round trip time (RTT)
 	void Update(float deltaTime, float rtt)
 	{
 		const float RTT_Threshold = 250.0f;
@@ -104,13 +116,14 @@ public:
 		}
 	}
 
+	// Get the send rate based on current mode
 	float GetSendRate()
 	{
 		return mode == Good ? 30.0f : 10.0f;
 	}
 
 private:
-
+	// Enum for flow control mode
 	enum Mode
 	{
 		Good,
@@ -122,9 +135,23 @@ private:
 	float good_conditions_time;
 	float penalty_reduction_accumulator;
 };
+/*
+	Function Name: calculateXORChecksum
+	Description: Calculate XOR checksum for a vector of bytes.
+	Parameters:
+		- const std::vector<uint8_t>& data: Input data for which checksum is calculated.
+	Returns:
+		- uint16_t: Calculated XOR checksum.
+*/
+uint16_t calculateXORChecksum(const std::vector<uint8_t>& data) {
+	uint16_t checksum = 0;
+	for (auto byte : data) {
+		checksum ^= byte; // XOR each byte with the checksum
+	}
+	return checksum;
+}
 
-// ----------------------------------------------
-
+// Main function
 int main(int argc, char* argv[])
 {
 	// parse command line
@@ -209,7 +236,40 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-		// send and receive packets
+		if (mode == Client) {
+			connection.Connect(address);
+
+
+			// Assuming 'connection' and 'address' are set up as shown in your provided code
+			auto start = high_resolution_clock::now();
+			// Open the file in binary mode
+			std::ifstream file("C:\\Users\\trish\\Desktop\\trisha.txt", std::ios::binary | std::ios::ate);
+			if (!file.is_open()) {
+				std::cerr << "Failed to open file.\n";
+				return 1;
+			}
+
+			std::streamsize size = file.tellg();
+			file.seekg(0, std::ios::beg);
+
+			// Extract filename from path
+			std::string path = "C:\\Users\\trish\\Desktop\\trisha.txt";
+			std::string filename = path.substr(path.find_last_of("/\\") + 1);
+
+			// Send filename packet (Type 0x01)
+			unsigned char filenamePacket[PacketSize];
+			memset(filenamePacket, 0, sizeof(filenamePacket));
+			filenamePacket[0] = 0x01; // Packet type for filename
+			memcpy(filenamePacket + 1, filename.c_str(), filename.length());
+			connection.SendPacket(filenamePacket, sizeof(filenamePacket));
+
+			// Send file size packet (Type 0x02)
+			unsigned char fileSizePacket[PacketSize];
+			memset(fileSizePacket, 0, sizeof(fileSizePacket));
+			fileSizePacket[0] = 0x02; // Packet type for file size
+			memcpy(fileSizePacket + 1, &size, sizeof(size));
+			connection.SendPacket(fileSizePacket, sizeof(fileSizePacket));
+		}
 
 		// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
 
