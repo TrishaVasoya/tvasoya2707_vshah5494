@@ -302,17 +302,22 @@ int main(int argc, char* argv[])
 
 		// Calculate the speed in Megabits per second (Mbps)
 		double speedMbps = (fileSizeInBits / (1024 * 1024)) / durationInSeconds; // Note: 1024*1024 bits in a Megabit
+
+		std::cout << "File transmission completed in " << duration.count() << " milliseconds.\n";
+		std::cout << "Transmission speed: " << speedMbps << " Mbps\n";
 	}
 
-		// Existing logic to send "Hello World" messages
-		sendAccumulator += DeltaTime;
-		while (sendAccumulator > 1.0f / sendRate) {
-			unsigned char packet[PacketSize];
-			memset(packet, 0, sizeof(packet));
-			sprintf((char*)packet, "Hello World <<%d>>", packetCounter++);
-			connection.SendPacket(packet, sizeof(packet));
-			sendAccumulator -= 1.0f / sendRate;
-		}
+
+	sendAccumulator += DeltaTime;
+	for (; sendAccumulator > 1.0f / sendRate; sendAccumulator -= 1.0f / sendRate)
+	{
+		unsigned char packet[PacketSize];
+		unsigned char filepacket[PacketSize];
+		memset(packet, 0, sizeof(packet));
+		sprintf((char*)packet, "Hello World <<%d>>", packetCounter++);
+		connection.SendPacket(packet, sizeof(packet));
+	}
+
 
 
 
