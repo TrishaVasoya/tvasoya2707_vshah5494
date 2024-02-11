@@ -349,6 +349,17 @@ int main(int argc, char* argv[])
 		else if (packet[0] == 0x02) { // File size
 			memcpy(&outFilesize, packet + 1, sizeof(outFilesize));
 		}
+		else if (packet[0] == 0x03) { // File content packet
+			receivedFileSize += (bytes_read - 1); // Accumulate received size
+			if (outFile.is_open()) {
+				outFile.write(reinterpret_cast<char*>(packet + 1), bytes_read - 1);
+			}
+		}
+		else if (packet[0] == 0x04) { // End of file
+			if (outFile.is_open()) {
+				outFile.close();
+				std::cout << "File " << outFilename << " received and saved. Size: " << receivedFileSize << " bytes.\n";
+			}
 	}
 
 
