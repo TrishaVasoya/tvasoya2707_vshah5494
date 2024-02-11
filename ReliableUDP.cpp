@@ -290,6 +290,7 @@ int main(int argc, char* argv[])
 		eofPacket[0] = 0x04; // Packet type for end of file
 		connection.SendPacket(eofPacket, sizeof(eofPacket));
 
+		file.close();
 		// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
 
 		std::string fileName = "test.txt"; // Example file name
