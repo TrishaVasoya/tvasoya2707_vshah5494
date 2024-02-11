@@ -290,8 +290,12 @@ int main(int argc, char* argv[])
 		eofPacket[0] = 0x04; // Packet type for end of file
 		connection.SendPacket(eofPacket, sizeof(eofPacket));
 
-		file.close();
-		// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
+		file.close(); std::cout << "File transmission completed.\n";
+		double fileSizeInBytes = static_cast<double>(size); // Assuming 'size' is already defined as the file size in bytes
+		double fileSizeInBits = fileSizeInBytes * 8.0; // Convert bytes to bits
+
+		auto end = high_resolution_clock::now();
+		auto duration = duration_cast<milliseconds>(end - start); // Duration in milliseconds// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
 
 		std::string fileName = "test.txt"; // Example file name
 
