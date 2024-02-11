@@ -346,6 +346,9 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 		}
+		else if (packet[0] == 0x02) { // File size
+			memcpy(&outFilesize, packet + 1, sizeof(outFilesize));
+		}
 	}
 
 
