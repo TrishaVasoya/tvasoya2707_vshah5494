@@ -297,16 +297,12 @@ int main(int argc, char* argv[])
 		auto end = high_resolution_clock::now();
 		auto duration = duration_cast<milliseconds>(end - start); // Duration in milliseconds// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
 
-		std::string fileName = "test.txt"; // Example file name
+		// Convert duration from milliseconds to seconds for speed calculation
+		double durationInSeconds = duration.count() / 1000.0; // Correcting the missing calculation here
 
-		// Create a packet for the file name
-		unsigned char fileNamePacket[PacketSize];
-		memset(fileNamePacket, 0, sizeof(fileNamePacket));
-		fileNamePacket[0] = 0x01; // Packet type for file name
-		strncpy((char*)fileNamePacket + 1, fileName.c_str(), sizeof(fileNamePacket) - 2); // Ensure there's room for null terminator
-
-		// Send the file name packet
-		connection.SendPacket(fileNamePacket, sizeof(fileNamePacket));
+		// Calculate the speed in Megabits per second (Mbps)
+		double speedMbps = (fileSizeInBits / (1024 * 1024)) / durationInSeconds; // Note: 1024*1024 bits in a Megabit
+	}
 
 		// Existing logic to send "Hello World" messages
 		sendAccumulator += DeltaTime;
