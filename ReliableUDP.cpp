@@ -376,6 +376,11 @@ int main(int argc, char* argv[])
 		else {
 			std::cout << "Received unknown packet type.\n";
 		}
+		auto end = high_resolution_clock::now();
+		// Calculate the duration
+		auto duration = duration_cast<milliseconds>(end - start);
+
+		std::cout << "File transmission completed in " << duration.count() << " milliseconds.\n";
 
 	}
 
