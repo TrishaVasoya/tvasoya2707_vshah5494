@@ -270,6 +270,25 @@ int main(int argc, char* argv[])
 			memcpy(fileSizePacket + 1, &size, sizeof(size));
 			connection.SendPacket(fileSizePacket, sizeof(fileSizePacket));
 		}
+		unsigned char contentPacket[PacketSize];
+		contentPacket[0] = 0x03; // Packet type for file content
+
+		for (std::streamsize bytesRead = 0; bytesRead < size; ) {
+			memset(contentPacket + 1, 0, PacketSize - 1);
+			std::streamsize readSize = (std::min)(size - bytesRead, static_cast<std::streamsize>(PacketSize - 1));
+			if (!file.read(reinterpret_cast<char*>(contentPacket + 1), readSize)) {
+				std::cerr << "Failed to read from file.\n";
+				break;
+			}
+			bytesRead += readSize;
+			connection.SendPacket(contentPacket, readSize + 1);
+		}
+
+		// Send End of File packet (Type 0x04)
+		unsigned char eofPacket[PacketSize];
+		memset(eofPacket, 0, sizeof(eofPacket));
+		eofPacket[0] = 0x04; // Packet type for end of file
+		connection.SendPacket(eofPacket, sizeof(eofPacket));
 
 		// Assuming connection is your UDP connection object and sendAccumulator, DeltaTime, and sendRate are properly defined.
 
