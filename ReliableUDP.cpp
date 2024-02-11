@@ -319,7 +319,12 @@ int main(int argc, char* argv[])
 	}
 
 
-
+	std::ofstream outFile;
+	std::string outFilename;
+	size_t outFilesize = 0;
+	size_t receivedFileSize = 0; // To track the amount of data received
+	bool timingStarted = false; // Flag to mark the start of timing
+	auto start = high_resolution_clock::now(); // Initialize start time
 
 		// This loop is inside your main server loop, where it processes incoming packets.
 		while (true) {
