@@ -326,25 +326,27 @@ int main(int argc, char* argv[])
 	bool timingStarted = false; // Flag to mark the start of timing
 	auto start = high_resolution_clock::now(); // Initialize start time
 
-		// This loop is inside your main server loop, where it processes incoming packets.
-		while (true) {
-			unsigned char packet[256];
-			int bytes_read = connection.ReceivePacket(packet, sizeof(packet));
-			if (bytes_read == 0) break; // No more packets
+	for (;;) {
+		unsigned char packet[PacketSize];
+		int bytes_read = connection.ReceivePacket(packet, sizeof(packet));
 
-			if (packet[0] == 0x01) { // Check if it's a file name packet
-				// Extract the file name from the packet
-				char fileName[255];
-				strncpy(fileName, (char*)packet + 1, sizeof(packet) - 2);
-				fileName[sizeof(packet) - 2] = '\0'; // Ensure null termination
-				printf("Received file name: %s\n", fileName);
-			}
-			else {
-				// Process other types of packets (e.g., "Hello World" messages)
-				printf("Received packet: %s\n", packet + 1); // +1 to skip the type byte
-			}
+		if (bytes_read == 0)
+			continue; // Skip processing if no packet was received
+
+		if (!timingStarted) {
+			start = high_resolution_clock::now(); // Properly set start time at the first packet
+			timingStarted = true;
 		}
 
+		if (packet[0] == 0x01) { // Filename
+			outFilename.assign(reinterpret_cast<char*>(packet + 1), bytes_read - 1);
+			outFile.open(outFilename, std::ios::binary);
+			if (!outFile.is_open()) {
+				std::cerr << "Failed to create file: " << outFilename << std::endl;
+				return 1;
+			}
+		}
+	}
 
 
 		// show packets that were acked this frame
