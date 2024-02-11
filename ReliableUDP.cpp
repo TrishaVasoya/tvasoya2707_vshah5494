@@ -365,6 +365,18 @@ int main(int argc, char* argv[])
 			double durationInSeconds = duration.count();
 			double receivedFileSizeInBits = receivedFileSize * 8.0; // Convert bytes to bits
 			double speedMbps = (receivedFileSizeInBits / (1024.0 * 1024.0)) / durationInSeconds; // Mbps calculation
+
+			cout << "File transmission completed in " << durationInSeconds << " seconds.\n";
+			cout << "Reception speed: " << speedMbps << " Mbps\n";
+
+			// Reset for potentially next file
+			receivedFileSize = 0;
+			timingStarted = false;
+		}
+		else {
+			std::cout << "Received unknown packet type.\n";
+		}
+
 	}
 
 
