@@ -360,6 +360,11 @@ int main(int argc, char* argv[])
 				outFile.close();
 				std::cout << "File " << outFilename << " received and saved. Size: " << receivedFileSize << " bytes.\n";
 			}
+			auto end = high_resolution_clock::now();
+			auto duration = duration_cast<chrono::duration<double>>(end - start); // This is the correct usage
+			double durationInSeconds = duration.count();
+			double receivedFileSizeInBits = receivedFileSize * 8.0; // Convert bytes to bits
+			double speedMbps = (receivedFileSizeInBits / (1024.0 * 1024.0)) / durationInSeconds; // Mbps calculation
 	}
 
 
